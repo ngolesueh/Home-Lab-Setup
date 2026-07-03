@@ -139,5 +139,14 @@ dist
 
 # Vite files
 vite.config.js.timestamp-*
+
+# Never commit these
+.env
+.env.local
+*.key
+*.pem
+secrets.*
+node_modules/
+.DS_Store
 vite.config.ts.timestamp-*
 .vite/
