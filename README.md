@@ -22,7 +22,7 @@ Reading about firewalls, SIEMs, and EDR tools only goes so far. I wanted hands-o
 
 ## Core Topology
 
-![Home Lab Network Topology](screenshots/01-topology/homelab-topology-diagram.png)
+![Home Lab Network Topology](homelab-topology-diagram.png)
 
 The lab is built around a central **pfSense** router/firewall that strictly segments traffic across dedicated virtual network interfaces — the same zero-trust principle a real enterprise network uses to keep a compromised host in one zone from freely reaching another.
 
@@ -35,7 +35,7 @@ Four functional zones sit behind that firewall:
 
 All of it runs as virtual machines under VMware Workstation Pro on one physical host, with pfSense's multiple virtual network adapters (below) doing the actual work of keeping each zone on its own segment.
 
-![pfSense VM with six isolated virtual network adapters](screenshots/02-vmware-workstation/05-pfsense-vm-network-adapters.png)
+![pfSense VM with six isolated virtual network adapters](05-pfsense-vm-network-adapters.png)
 
 ## Tool Roles and Why Each One Matters
 
@@ -67,23 +67,23 @@ The entire environment is built as virtual machines under **VMware Workstation P
 
 I downloaded VMware Workstation for my OS from [VMware's product page](https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion).
 
-![VMware Fusion and Workstation download page](screenshots/02-vmware-workstation/01-vmware-download-page.png)
+![VMware Fusion and Workstation download page](01-vmware-download-page.png)
 
 Clicking Download took me to my account's download page (note: an account is required even though the software itself is free). From there I selected **"free software downloads available here"**, which listed every free download available, and I picked **VMware Workstation Pro 17.6.4**.
 
 Before installing, I verified the downloaded file's integrity by checking its SHA256 hash against the value published by VMware — a habit worth keeping for any installer, since it confirms the file wasn't corrupted or tampered with in transit.
 
-![VMware Workstation Pro setup wizard welcome screen](screenshots/02-vmware-workstation/02-vmware-setup-wizard-welcome.png)
+![VMware Workstation Pro setup wizard welcome screen](02-vmware-setup-wizard-welcome.png)
 
 **Installation**
 
 I double-clicked the downloaded installer and went with the default settings to keep things simple. Partway through, the wizard flagged that my host had Hyper-V / Device Credential Guard enabled and offered to install the Windows Hypervisor Platform (WHP) automatically to stay compatible.
 
-![VMware compatibility step for Hyper-V / Credential Guard hosts](screenshots/02-vmware-workstation/03-vmware-hyperv-compatibility-step.png)
+![VMware compatibility step for Hyper-V / Credential Guard hosts](03-vmware-hyperv-compatibility-step.png)
 
 I then ran into an installation error: a required file (`vmnetbridge.dll`) could not be found, which halted the install.
 
-![VMware installer "Files Needed" error for a missing DLL](screenshots/02-vmware-workstation/04-vmware-install-missing-file-error.png)
+![VMware installer "Files Needed" error for a missing DLL](04-vmware-install-missing-file-error.png)
 
 I canceled the install, restarted my computer, and re-ran the installer as Administrator — that combination fixed it. My reasoning: restarting clears out temp files and resets any locked processes or leftover state from the failed attempt, while running as Administrator sidesteps any permission-related blockage that a regular user install can hit when writing system-level network drivers.
 
@@ -95,17 +95,17 @@ With VMware Workstation Pro installed, I built out the VM inventory for the lab 
 
 pfSense is the piece that turns a pile of separate VMs into an actual segmented network. After deploying it as a VM with six network adapters (one per zone/subnet, shown above), I configured it through its web interface.
 
-![pfSense system status page](screenshots/03-pfsense-firewall/01-pfsense-system-status.png)
+![pfSense system status page](01-pfsense-system-status.png)
 
 I built out the firewall ruleset on the LAN interface to follow least-privilege by default: explicit allow rules for DNS, HTTP, HTTPS, and NTP outbound, and an explicit **deny-all** rule at the bottom to catch everything else. This is the same default-deny posture used in production firewalls — allow only what you know you need, then block the rest.
 
-![Firewall rules table: DNS/HTTP/HTTPS/NTP allowed, default deny-all at the bottom](screenshots/03-pfsense-firewall/02-firewall-rules-lan-outbound.png)
+![Firewall rules table: DNS/HTTP/HTTPS/NTP allowed, default deny-all at the bottom](02-firewall-rules-lan-outbound.png)
 
 I also set up **pfBlockerNG** for DNS-based blocklisting (DNSBL), which filters outbound requests to known-malicious domains at the DNS layer before they ever reach a host. Getting the DNSBL wizard running required first configuring a Virtual IP for pfSense's localhost interface — I hit a validation error the first time through ("no VIP configured") before going back and setting that up correctly, which was a good reminder that pfBlockerNG has prerequisite steps that aren't obvious from the wizard alone.
 
-![pfBlockerNG DNSBL configuration wizard, with a VIP validation error](screenshots/03-pfsense-firewall/04-pfblockerng-dnsbl-wizard.png)
+![pfBlockerNG DNSBL configuration wizard, with a VIP validation error](04-pfblockerng-dnsbl-wizard.png)
 
-![pfBlockerNG rule inserted at the top of the firewall rule set](screenshots/03-pfsense-firewall/03-pfblockerng-firewall-rule.png)
+![pfBlockerNG rule inserted at the top of the firewall rule set](03-pfblockerng-firewall-rule.png)
 
 ---
 
@@ -113,11 +113,11 @@ I also set up **pfBlockerNG** for DNS-based blocklisting (DNSBL), which filters 
 
 The Windows Server 2019 VM was promoted to a Domain Controller and configured with the core roles an enterprise identity environment depends on: **AD Certificate Services (AD CS)**, **AD Domain Services (AD DS)**, **DNS**, and **File and Storage Services**.
 
-![Windows Server 2019 Server Manager dashboard showing AD CS, AD DS, DNS, and File and Storage Services roles](screenshots/06-active-directory/01-windows-server-2019-ad-roles-dashboard.png)
+![Windows Server 2019 Server Manager dashboard showing AD CS, AD DS, DNS, and File and Storage Services roles](01-windows-server-2019-ad-roles-dashboard.png)
 
 Windows 10 machines were joined to this domain to act as user workstations — the everyday endpoints that generate the bulk of "normal" activity in the lab, and the machines that later get instrumented with the Splunk Universal Forwarder so their logs flow into the SIEM.
 
-![Windows 10 workstation desktop, joined to the domain and running the Splunk Universal Forwarder](screenshots/07-endpoints/01-windows10-workstation-desktop.png)
+![Windows 10 workstation desktop, joined to the domain and running the Splunk Universal Forwarder](01-windows10-workstation-desktop.png)
 
 ---
 
@@ -127,45 +127,45 @@ Security Onion is deployed as its own VM with two network roles: a **management 
 
 **1. Internet connectivity mode** — I chose **Direct**, so Security Onion's own update/package traffic (git, docker, curl, yum, etc.) goes straight out rather than through a proxy.
 
-![Security Onion setup — Direct vs. Proxy internet connectivity](screenshots/04-security-onion/01-setup-network-mode.png)
+![Security Onion setup — Direct vs. Proxy internet connectivity](01-setup-network-mode.png)
 
 **2. Installation type** — I selected **Standalone**, a single-box deployment appropriate for a home lab, rather than Import, Evaluation, Distributed, or Desktop mode.
 
-![Security Onion setup — choosing Standalone installation](screenshots/04-security-onion/02-setup-installation-type.png)
+![Security Onion setup — choosing Standalone installation](02-setup-installation-type.png)
 
 **3. Install vs. Configure Network** — running the full standard installation rather than a network-only reconfiguration.
 
-![Security Onion setup — Install vs. Configure Network only](screenshots/04-security-onion/03-setup-install-or-configure-network.png)
+![Security Onion setup — Install vs. Configure Network only](03-setup-install-or-configure-network.png)
 
 **4. Node connectivity** — set to **Standard** (this node has internet access), as opposed to an air-gapped install.
 
-![Security Onion setup — Standard vs. Airgap node](screenshots/04-security-onion/04-setup-node-connectivity.png)
+![Security Onion setup — Standard vs. Airgap node](04-setup-node-connectivity.png)
 
 Partway through this process, the wizard detected a previous install attempt and warned that continuing would remove that prior configuration — a good reminder that re-running setup on Security Onion is a destructive action, not something to click through casually.
 
-![Security Onion setup — "previous install detected, this is destructive" warning](screenshots/04-security-onion/05-setup-previous-install-warning.png)
+![Security Onion setup — "previous install detected, this is destructive" warning](05-setup-previous-install-warning.png)
 
 **5. Management NIC** — selected the interface used to reach the web console and administer the box.
 
-![Security Onion setup — selecting the management NIC](screenshots/04-security-onion/06-setup-management-nic.png)
+![Security Onion setup — selecting the management NIC](06-setup-management-nic.png)
 
 **6–8. Management network details** — set a **static IP** (recommended over DHCP for infrastructure like this), then assigned the IPv4 address/CIDR, DNS search domain, and hostname for the box.
 
-![Security Onion setup — static vs. DHCP for the management interface](screenshots/04-security-onion/07-setup-management-ip-method.png)
+![Security Onion setup — static vs. DHCP for the management interface](07-setup-management-ip-method.png)
 
-![Security Onion setup — assigning the static IPv4 address](screenshots/04-security-onion/08-setup-static-ip-assignment.png)
+![Security Onion setup — assigning the static IPv4 address](08-setup-static-ip-assignment.png)
 
-![Security Onion setup — DNS search domain](screenshots/04-security-onion/09-setup-dns-search-domain.png)
+![Security Onion setup — DNS search domain](09-setup-dns-search-domain.png)
 
-![Security Onion setup — hostname](screenshots/04-security-onion/10-setup-hostname.png)
+![Security Onion setup — hostname](10-setup-hostname.png)
 
 **9. Monitor interface(s)** — dedicated separately from the management NIC, and connected to pfSense's SPAN port so Security Onion passively receives a mirrored copy of network traffic instead of sitting inline.
 
-![Security Onion setup — assigning NICs to the monitor interface](screenshots/04-security-onion/11-setup-monitor-interfaces.png)
+![Security Onion setup — assigning NICs to the monitor interface](11-setup-monitor-interfaces.png)
 
 Once setup finished, the Security Onion web console came up, giving access to Alerts, Dashboards, Hunt, Cases, PCAP, and the underlying tools it bundles (Kibana, Grafana, CyberChef, and more) — this is where the actual network threat-hunting work happens.
 
-![Security Onion web console — Overview page after a successful install](screenshots/04-security-onion/12-web-console-overview.png)
+![Security Onion web console — Overview page after a successful install](12-web-console-overview.png)
 
 ---
 
@@ -175,17 +175,17 @@ Splunk Enterprise runs on its own dedicated Linux VM and receives forwarded logs
 
 Getting there wasn't entirely smooth. Early on, the Splunk server VM had a network interface that wouldn't come up correctly (`ens33` stuck "connecting" and failing to obtain an IP), which I had to troubleshoot at the OS level before Splunk itself could be reached over the network.
 
-![Troubleshooting a stuck network interface on the Splunk server VM](screenshots/05-splunk-siem/02-splunk-server-network-troubleshooting.png)
+![Troubleshooting a stuck network interface on the Splunk server VM](02-splunk-server-network-troubleshooting.png)
 
 During the Splunk install itself, the installer ran through its configuration checks, validated installed files, and started the `splunkd` daemon — but the web UI wasn't reachable yet while it finished spinning up:
 
-![Splunk install terminal — preliminary checks and splunkd startup](screenshots/05-splunk-siem/01-splunk-install-terminal-checks.png)
+![Splunk install terminal — preliminary checks and splunkd startup](01-splunk-install-terminal-checks.png)
 
-![Splunk web UI unreachable immediately after starting the daemon](screenshots/05-splunk-siem/03-splunk-web-ui-first-login.png)
+![Splunk web UI unreachable immediately after starting the daemon](03-splunk-web-ui-first-login.png)
 
 Once the web server finished initializing, Splunk's home page came up normally, and I could start building searches against the forwarded endpoint data:
 
-![Splunk home page after a successful first login](screenshots/05-splunk-siem/04-splunk-search-no-results.png)
+![Splunk home page after a successful first login](04-splunk-search-no-results.png)
 
 One thing worth documenting honestly: an early test search (`index=* host="192.168.2.10"`) returned zero events, which is a normal and expected troubleshooting step right after standing up a new forwarder — it's the point where you go back and confirm the forwarder is actually pointed at the indexer and that the host's data is landing in the index you expect, rather than assuming the pipe is broken.
 
